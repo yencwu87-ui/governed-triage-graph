@@ -1,0 +1,22 @@
+# --- secrets ---
+.env
+*.key
+.streamlit/secrets.toml
+
+# --- corpus: CC-BY-NC-4.0, not ours to redistribute. See DATA.md ---
+aa_dataset-tickets-multi-lang-*.csv
+dataset-tickets-multi-lang-*.csv
+tickets_en.csv
+precedent_pool.csv
+gold_set_template.csv
+
+# --- run artifacts: contain ticket text and model outputs ---
+calls.jsonl
+preds*.csv
+*.sqlite
+
+# --- python ---
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

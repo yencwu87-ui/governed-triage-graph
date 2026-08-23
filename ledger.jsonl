@@ -1,0 +1,1 @@
+{"label": "tfidf+logreg baseline", "n": 4085, "accuracy": 0.6421, "macro_f1": 0.6112, "under_classification": 0.1383, "over_classification": 0.2196, "passes": false}
