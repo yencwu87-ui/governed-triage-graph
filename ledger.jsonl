@@ -1,0 +1,6 @@
+{"label": "tfidf+logreg baseline", "n": 4085, "accuracy": 0.6421, "macro_f1": 0.6112, "under_classification": 0.1383, "over_classification": 0.2196, "passes": false}
+{"label": "tfidf+logreg baseline", "n": 4085, "accuracy": 0.6404, "macro_f1": 0.6091, "under_classification": 0.1386, "over_classification": 0.2211, "passes": false}
+{"label": "smoke n=20", "n": 20, "accuracy": 0.4, "macro_f1": 0.3058, "under_classification": 0.35, "over_classification": 0.25, "passes": false}
+{"label": "llama3.1-8b base + rubric", "n": 4085, "accuracy": 0.4203, "macro_f1": 0.3772, "under_classification": 0.2392, "over_classification": 0.3405, "passes": false}
+{"label": "tfidf+logreg baseline", "n": 4085, "accuracy": 0.6404, "macro_f1": 0.6091, "kappa": 0.4233, "under_classification": 0.1386, "over_classification": 0.2211, "passes": false}
+{"label": "llama3.1-8b base + rubric", "n": 4085, "accuracy": 0.4203, "macro_f1": 0.3772, "kappa": 0.0823, "under_classification": 0.2392, "over_classification": 0.3405, "passes": false}
