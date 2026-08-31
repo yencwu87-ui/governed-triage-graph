@@ -1,0 +1,18 @@
+# Corpus and derived data — see DATA.md, regenerate with make_datasets.py
+tickets_en.csv
+precedent_pool.csv
+calls.jsonl
+preds_*.csv
+finetune/data/*.jsonl
+
+# Model weights
+finetune/adapters/*.safetensors
+finetune/adapters/*.npz
+*.gguf
+
+# Environments and caches
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
