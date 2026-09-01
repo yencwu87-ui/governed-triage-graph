@@ -59,8 +59,9 @@ def fresh_app(stub: bool, clf=None):
 # ------------------------------------------------------------------ sidebar
 st.sidebar.header("Test bench")
 backend = st.sidebar.radio(
-    "Classifier", ["Stub", "Local (Ollama)", "Anthropic API"],
+    "Classifier", ["Stub", "Local (Ollama)", "MLX (fine-tuned)", "Anthropic API"],
     help="Stub = placeholder, no model. Local = Ollama on this machine, free. "
+         "MLX = local LoRA-tuned model, needs mlx_lm.server running. "
          "API = hosted, needs a key.")
 stub = backend == "Stub"
 
@@ -72,6 +73,13 @@ if backend == "Local (Ollama)":
     if not ok:
         st.stop()
     st.sidebar.caption(f"Model: {clf.MODEL}. Nothing leaves this machine.")
+elif backend == "MLX (fine-tuned)":
+    import classifier_mlx as clf
+    ok, msg = clf.health()
+    (st.sidebar.success if ok else st.sidebar.error)(msg)
+    if not ok:
+        st.stop()
+    st.sidebar.caption(f"Model: {clf.MODEL} + LoRA adapter. Nothing leaves this machine.")
 elif backend == "Anthropic API":
     if not os.environ.get("ANTHROPIC_API_KEY"):
         st.sidebar.error("ANTHROPIC_API_KEY is not set in this shell.")
@@ -202,7 +210,8 @@ else:
         sample = df.sample(n, random_state=3)
         for i, (_, r) in enumerate(sample.iterrows()):
             try:
-                s = run_triage.run_one(app, r, auto_approve="", verbose=False)
+                #s = run_triage.run_one(app, r, auto_approve="", verbose=False)
+                s = run_triage.run_one(app, r, auto_approve=None, verbose=False)
             except NotImplementedError as e:
                 import sys, traceback
                 st.error(f"Node `{traceback.extract_tb(sys.exc_info()[2])[-1].name}` "
