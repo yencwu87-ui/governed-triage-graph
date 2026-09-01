@@ -125,3 +125,19 @@ def classify(subject, body, dq=None, precedents=None, version="v0.1",
         with open(log_path, "a") as f:
             f.write(json.dumps(out) + "\n")
     return out
+
+MLX_URL = "http://127.0.0.1:8080/v1/chat/completions"
+MLX_MODEL = "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"
+
+def classify_mlx(ticket_text, system_prompt):
+    r = requests.post(MLX_URL, json={
+        "model": MLX_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": ticket_text},
+        ],
+        "temperature": 0.0,
+        "max_tokens": 64,
+    }, timeout=120)
+    r.raise_for_status()
+    return r.json()["choices"][0]["message"]["content"]
