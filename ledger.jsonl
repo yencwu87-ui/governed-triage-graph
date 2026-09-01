@@ -4,3 +4,5 @@
 {"label": "llama3.1-8b base + rubric", "n": 4085, "accuracy": 0.4203, "macro_f1": 0.3772, "under_classification": 0.2392, "over_classification": 0.3405, "passes": false}
 {"label": "tfidf+logreg baseline", "n": 4085, "accuracy": 0.6404, "macro_f1": 0.6091, "kappa": 0.4233, "under_classification": 0.1386, "over_classification": 0.2211, "passes": false}
 {"label": "llama3.1-8b base + rubric", "n": 4085, "accuracy": 0.4203, "macro_f1": 0.3772, "kappa": 0.0823, "under_classification": 0.2392, "over_classification": 0.3405, "passes": false}
+{"label": "llama3.1-8b lora 500it", "n": 4085, "accuracy": 0.3655, "macro_f1": 0.3507, "kappa": 0.0453, "under_classification": 0.4247, "over_classification": 0.2098, "passes": false}
+{"label": "lora ck1000 n=500", "n": 500, "accuracy": 0.224, "macro_f1": 0.122, "kappa": 0.0, "under_classification": 0.776, "over_classification": 0.0, "passes": false}

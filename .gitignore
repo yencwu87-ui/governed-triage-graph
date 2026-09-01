@@ -16,3 +16,4 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+finetune/adapters_3000/
