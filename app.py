@@ -28,8 +28,13 @@ PILL = {"high": "🔴", "medium": "🟠", "low": "🟢"}
 
 @st.cache_data
 def load(path="tickets_en.csv"):
-    return pd.read_csv(path)
-
+    d = pd.read_csv(path)
+    for col in ("priority", "queue", "type", "tags", "answer"):
+        if col not in d.columns:
+            d[col] = None             # columns tickets_en.csv has, corpus.csv doesn't
+    return d
+source = st.sidebar.selectbox("Corpus", ["tickets_en.csv", "corpus.csv"])
+df = load(source)
 
 def fresh_app(stub: bool, clf=None):
     """Stubs fill the unwritten nodes. When a real classifier is chosen it
@@ -86,7 +91,6 @@ elif backend == "Anthropic API":
         st.stop()
     import classifier as clf
     st.sidebar.success(f"API · {clf.MODEL}")
-df = load()
 mode = st.sidebar.radio("Mode", ["Single ticket", "Batch", "Label gold set"])
 
 if stub:
@@ -210,8 +214,8 @@ else:
         sample = df.sample(n, random_state=3)
         for i, (_, r) in enumerate(sample.iterrows()):
             try:
-                #s = run_triage.run_one(app, r, auto_approve="", verbose=False)
-                s = run_triage.run_one(app, r, auto_approve=None, verbose=False)
+                s = run_triage.run_one(app, r, auto_approve="", verbose=False)
+                #s = run_triage.run_one(app, r, auto_approve=None, verbose=False)
             except NotImplementedError as e:
                 import sys, traceback
                 st.error(f"Node `{traceback.extract_tb(sys.exc_info()[2])[-1].name}` "

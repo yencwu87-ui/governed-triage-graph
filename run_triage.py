@@ -101,10 +101,15 @@ def run_one(app, row, auto_approve=None, verbose=True):
             decision = {"approved_priority": auto_approve or ask["machine_priority"],
                         "resumed_by": "auto", "agreed": True}
         else:
-            got = input("     confirm [Enter] or type low/medium/high: ").strip()
-            decision = {"approved_priority": got or ask["machine_priority"],
-                        "resumed_by": "operator",
-                        "agreed": (not got) or got == ask["machine_priority"]}
+            valid = {"low", "medium", "high"}
+            while True:
+                got = input(f"      [{ask['ticket_id']}] Enter=accept {ask['machine_priority']}, "
+                        f"or type low/medium/high: ").strip().lower()
+                if got == "" or got in valid: break
+                print(f"not a severity — expected one of {sorted(valid)}, or Enter to accept")
+            decision = {"approved_priority": got or ask["machine_priority"],"resumed_by": "operator", "agreed": (not got) or got == ask["machine_priority"]}
+
+
         state = app.invoke(Command(resume=decision), cfg)
 
     state["_elapsed_s"] = round(time.time() - t0, 3)
