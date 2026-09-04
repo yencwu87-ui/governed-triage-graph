@@ -23,3 +23,9 @@ soc_alerts.csv
 corpus.csv
 smoke.csv
 runs/
+incidents.csv
+servicenow_incidents.csv
+soc_alerts.csv
+corpus.csv
+smoke.csv
+runs/
