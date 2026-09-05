@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>governed-triage-graph — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>governed-triage-graph — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 342 nodes, 476 edges, 18 communities. Commit: f8e3724</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#extract-pipeline">Extraction Pipeline</a>
+    <a href="#build-graph">Graph Build</a>
+    <a href="#tests-fixtures">Tests &amp; Fixtures</a>
+    <a href="#predict-mlxpy-label">Predict Mlxpy Label</a>
+    <a href="#classifier-mlxpy-classify">Classifier Mlxpy Classify</a>
+    <a href="#eval-harnesspy-baseline">Eval Harnesspy Baseline</a>
+    <a href="#calibrate-groundingpy-fit">Calibrate Groundingpy Fit</a>
+    <a href="#prepare-datapy-finetune">Prepare Datapy Finetune</a>
+    <a href="#make-datasetspy-regenerate">Make Datasetspy Regenerate</a>
+    <a href="#check-leakagepy">Check Leakagepy</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>30 nodes</small>")
+    class EXTRACT_PIPELINE_5F350230 module;
+    BUILD_GRAPH_321CBB04("Graph Build<br/><small>227 nodes</small>")
+    class BUILD_GRAPH_321CBB04 module;
+    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>47 nodes</small>")
+    class TESTS_FIXTURES_B84B1DCC module;
+    PREDICT_MLXPY_LABEL_AAB30401("Predict Mlxpy Label<br/><small>9 nodes</small>")
+    class PREDICT_MLXPY_LABEL_AAB30401 module;
+    CLASSIFIER_MLXPY_CLASSIFY_9BD26F38("Classifier Mlxpy Classify<br/><small>9 nodes</small>")
+    class CLASSIFIER_MLXPY_CLASSIFY_9BD26F38 module;
+    EVAL_HARNESSPY_BASELINE_672C3BB9("Eval Harnesspy Baseline<br/><small>9 nodes</small>")
+    class EVAL_HARNESSPY_BASELINE_672C3BB9 module;
+    CALIBRATE_GROUNDINGPY_FIT_F7B1C068("Calibrate Groundingpy Fit<br/><small>5 nodes</small>")
+    class CALIBRATE_GROUNDINGPY_FIT_F7B1C068 module;
+    PREPARE_DATAPY_FINETUNE_9DC3E707("Prepare Datapy Finetune<br/><small>3 nodes</small>")
+    class PREPARE_DATAPY_FINETUNE_9DC3E707 module;
+    MAKE_DATASETSPY_REGENERATE_F24D9D07("Make Datasetspy Regenerate<br/><small>2 nodes</small>")
+    class MAKE_DATASETSPY_REGENERATE_F24D9D07 module;
+    CHECK_LEAKAGEPY_DC3F4801("Check Leakagepy<br/><small>1 nodes</small>")
+    class CHECK_LEAKAGEPY_DC3F4801 module;
+    BUILD_GRAPH_321CBB04 -->|imports x3| EXTRACT_PIPELINE_5F350230
+    TESTS_FIXTURES_B84B1DCC -->|imports x2| BUILD_GRAPH_321CBB04
+    BUILD_GRAPH_321CBB04 -->|imports| CLASSIFIER_MLXPY_CLASSIFY_9BD26F38
+    EXTRACT_PIPELINE_5F350230 -->|imports| BUILD_GRAPH_321CBB04
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Extraction Pipeline</td><td>30</td><td><code>3</code></td></tr><tr><td>Graph Build</td><td>227</td><td><code>0, 1, 4, 5, 6, 9, 11, 12</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>47</td><td><code>2, 14</code></td></tr><tr><td>Predict Mlxpy Label</td><td>9</td><td><code>10</code></td></tr><tr><td>Classifier Mlxpy Classify</td><td>9</td><td><code>7</code></td></tr><tr><td>Eval Harnesspy Baseline</td><td>9</td><td><code>8</code></td></tr><tr><td>Calibrate Groundingpy Fit</td><td>5</td><td><code>13</code></td></tr><tr><td>Prepare Datapy Finetune</td><td>3</td><td><code>15</code></td></tr><tr><td>Make Datasetspy Regenerate</td><td>2</td><td><code>16</code></td></tr><tr><td>Check Leakagepy</td><td>1</td><td><code>17</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">Tests &amp; Fixtures -&gt; Graph Build -&gt; Extraction Pipeline -&gt; Predict Mlxpy Label -&gt; Classifier Mlxpy Classify -&gt; Eval Harnesspy Baseline -&gt; Calibrate Groundingpy Fit</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>342 nodes · 468 edges · 18 communities (15 shown, 2 thin omitted)</li>
+      <li>Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 17 edges (avg confidence: 0.85)</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `gold_excluded` - 101 edges</li>
+      <li>2. `build_graph()` - 17 edges</li>
+      <li>3. `run_sweep()` - 14 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Extraction Pipeline ====== -->
+<h2 id="extract-pipeline">2. Extraction Pipeline</h2>
+<p>Extraction Pipeline groups implementation around groundingpy, classifier, compare, governancepy, mostly in grounding.py, compare_governance.py, classifier_local.py. This section covers 30 nodes and 47 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Extraction Pipeline (30 nodes, 47 edges)
+    subgraph extract_pipeline_grounding_py_845d6315["grounding.py"]
+        grounding_check_afffec9c("check()<br/><small>grounding.py</small>")
+        grounding_embed_e3facef1("_embed()<br/><small>grounding.py</small>")
+        grounding_bands_3c326484("Bands<br/><small>grounding.py</small>")
+        grounding_bands_label_593b89e8("label()<br/><small>grounding.py</small>")
+        grounding_backend_cecbec6a("_backend()<br/><small>grounding.py</small>")
+        grounding_st_5c109a7d("_st()<br/><small>grounding.py</small>")
+        grounding_anchors_7c6d2d57("_anchors()<br/><small>grounding.py</small>")
+        grounding_lexical_3e6c7926("_lexical()<br/><small>grounding.py</small>")
+        grounding_content_0c00cbf7("_content()<br/><small>grounding.py</small>")
+    end
+    subgraph extract_pipeline_compare_governance_py_6749e0e6["compare_governance.py"]
+        compare_governance_main_0e672887("main()<br/><small>compare_governance.py</small>")
+        compare_governance_a2c68ac1("compare_governance.py")
+        compare_governance_run_ca57372a("run()<br/><small>compare_governance.py</small>")
+        compare_governance_bands_32668147("bands()<br/><small>compare_governance.py</small>")
+        compare_governance_profile_8f81ba2a("profile()<br/><small>compare_governance.py</small>")
+        compare_governance_line_337c59a3("line()<br/><small>compare_governance.py</small>")
+    end
+    subgraph extract_pipeline_classifier_local_py_350d6d7e["classifier_local.py"]
+        classifier_local_classify_a079296f("classify()<br/><small>classifier_local.py</small>")
+        classifier_local_rubric_3683c321("rubric()<br/><small>classifier_local.py</small>")
+    end
+    smoke_5cb1e624("smoke.py")
+    grounding_bands_3c326484 -->|method| grounding_bands_label_593b89e8
+    classifier_local_classify_a079296f -->|calls| classifier_local_rubric_3683c321
+    compare_governance_bands_32668147 -->|calls| grounding_bands_3c326484
+    compare_governance_main_0e672887 -->|calls| compare_governance_bands_32668147
+    compare_governance_main_0e672887 -->|calls| compare_governance_run_ca57372a
+    compare_governance_main_0e672887 -->|calls| compare_governance_profile_8f81ba2a
+    compare_governance_main_0e672887 -->|calls| compare_governance_line_337c59a3
+    compare_governance_run_ca57372a -->|calls| classifier_local_classify_a079296f
+    compare_governance_run_ca57372a -->|calls| grounding_check_afffec9c
+    grounding_backend_cecbec6a -->|calls| grounding_st_5c109a7d
+    grounding_check_afffec9c -->|calls| grounding_bands_3c326484
+    grounding_check_afffec9c -->|calls| grounding_anchors_7c6d2d57
+    grounding_check_afffec9c -->|calls| grounding_backend_cecbec6a
+    grounding_check_afffec9c -->|calls| grounding_embed_e3facef1
+    grounding_check_afffec9c -->|calls| grounding_lexical_3e6c7926
+    grounding_check_afffec9c -->|calls| grounding_content_0c00cbf7
+    grounding_embed_e3facef1 -->|calls| grounding_backend_cecbec6a
+    grounding_embed_e3facef1 -->|calls| grounding_st_5c109a7d
+    grounding_lexical_3e6c7926 -->|calls| grounding_content_0c00cbf7
+    %% Omitted for readability: 12 nodes, 0 edges
+    class grounding_check_afffec9c function;
+    class grounding_embed_e3facef1 function;
+    class grounding_bands_3c326484 klass;
+    class grounding_bands_label_593b89e8 function;
+    class grounding_backend_cecbec6a function;
+    class grounding_st_5c109a7d function;
+    class grounding_anchors_7c6d2d57 function;
+    class grounding_lexical_3e6c7926 function;
+    class grounding_content_0c00cbf7 function;
+    class compare_governance_main_0e672887 function;
+    class compare_governance_a2c68ac1 module;
+    class compare_governance_run_ca57372a function;
+    class compare_governance_bands_32668147 function;
+    class compare_governance_profile_8f81ba2a function;
+    class compare_governance_line_337c59a3 function;
+    class classifier_local_classify_a079296f function;
+    class classifier_local_rubric_3683c321 function;
+    class smoke_5cb1e624 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Bands</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>bands()</code><br><small style="color:var(--muted)">compare_governance.py</small><br><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><code>label()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>Bands node in grounding.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>run()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><code>rubric()</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td>classify() node in classifier_local.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>health()</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>health() node in classifier_local.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>rubric()</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>rubric() node in classifier_local.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>bands()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><code>Bands</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>bands() node in compare_governance.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>line()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>line() node in compare_governance.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>bands()</code><br><small style="color:var(--muted)">compare_governance.py</small><br><code>line()</code><br><small style="color:var(--muted)">compare_governance.py</small><br><code>profile()</code><br><small style="color:var(--muted)">compare_governance.py</small><br>+1 more</td>
+  <td>main() node in compare_governance.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>profile()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>profile() node in compare_governance.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>run()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><code>check()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>classify()</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td>run() node in compare_governance.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>_anchors()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_anchors() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>_backend()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>_embed()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><code>_st()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>_backend() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>.label()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Bands</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.label() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>run()</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><code>_anchors()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>_backend()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>_content()</code><br><small style="color:var(--muted)">grounding.py</small><br>+3 more</td>
+  <td>check() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>_content()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>_lexical()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_content() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>_embed()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><code>_backend()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>_st()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>_embed() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>flags()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>flags() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>_lexical()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>check()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><code>_content()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>_lexical() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>_st()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>_backend()</code><br><small style="color:var(--muted)">grounding.py</small><br><code>_embed()</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_st() node in grounding.py.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>classifier_local.py</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>app.py</code><br><small style="color:var(--muted)">app.py</small><br><code>app_reason.py</code><br><small style="color:var(--muted)">app_reason.py</small><br><code>compare_governance.py</code><br><small style="color:var(--muted)">compare_governance.py</small><br>+1 more</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in classifier_local.py.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>compare_governance.py</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>classifier_local.py</code><br><small style="color:var(--muted)">classifier_local.py</small><br><code>grounding.py</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td>Module file in compare_governance.py.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>grounding.py</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>app_reason.py</code><br><small style="color:var(--muted)">app_reason.py</small><br><code>compare_governance.py</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Module file in grounding.py.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>smoke.py</code><br><small style="color:var(--muted)">smoke.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>classifier.py</code><br><small style="color:var(--muted)">classifier.py</small><br><code>classifier_local.py</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td>Module file in smoke.py.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Local classifier via Ollama. Same interface as classifier.py — no API key, no…</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Local classifier via Ollama. Same interface as classifier.py — no API key, no….</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Is Ollama up, and is the model pulled?</code><br><small style="color:var(--muted)">classifier_local.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Is Ollama up, and is the model pulled?.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Before/after: did optimising accuracy degrade the governance properties? python…</code><br><small style="color:var(--muted)">compare_governance.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Before/after: did optimising accuracy degrade the governance properties? python….</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Is the model&#x27;s stated reason actually about this ticket? v2. The v1 check…</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Is the model&#x27;s stated reason actually about this ticket? v2. The v1 check….</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Fallback only. Widened: stems to 4 chars and ignores rubric vocab.</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Fallback only. Widened: stems to 4 chars and ignores rubric vocab..</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Grounded/weak cutoffs. Defaults are PLACEHOLDERS — calibrate them.</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Grounded/weak cutoffs. Defaults are PLACEHOLDERS — calibrate them..</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Ollama first — no extra model stack, stays local. Then sentence-transformers.…</code><br><small style="color:var(--muted)">grounding.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Ollama first — no extra model stack, stays local. Then sentence-transformers.….</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Terminal smoke test — five tickets, real model, no graph, no Streamlit. python…</code><br><small style="color:var(--muted)">smoke.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Terminal smoke test — five tickets, real model, no graph, no Streamlit. python….</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>grounding.py</code></td><td>15 nodes</td></tr>
+<tr><td><code>compare_governance.py</code></td><td>7 nodes</td></tr>
+<tr><td><code>classifier_local.py</code></td><td>6 nodes</td></tr>
+<tr><td><code>smoke.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x18, contains x17, explains x8, imports x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Graph Build ====== -->
+<h2 id="build-graph">3. Graph Build</h2>
+<p>Graph Build groups implementation around data, manifestjson, finetune, triage, mostly in finetune/data/manifest.json, triage_graph.py, retrieve_policy.py. This section covers 227 nodes and 293 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Graph Build (227 nodes, 293 edges)
+    subgraph build_graph_retrieve_policy_py_9e8b128d["retrieve_policy.py"]
+        retrieve_policy_policyindex_379a836d("PolicyIndex<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyhit_321ca169("PolicyHit<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyhit_as_dict_f4ce3b16("as_dict()<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyindex_load_e5f5c8dd("_load()<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyindex_stale_against_head_4bd1e669("stale_against_head()<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyindex_lookup_9fe56eef("lookup()<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyindex_flags_611f6d8f("flags()<br/><small>retrieve_policy.py</small>")
+        retrieve_policy_policyindex_init_0cb552f2("__init__()<br/><small>retrieve_policy.py</small>")
+    end
+    subgraph build_graph_app_py_0c829aec["app.py"]
+        app_7d104347("app.py")
+        app_fresh_app_e654fe78("fresh_app()<br/><small>app.py</small>")
+    end
+    subgraph build_graph_app_reason_py_23896c74["app_reason.py"]
+        app_reason_5f6630aa("app_reason.py")
+        app_reason_fresh_app_b5d63674("fresh_app()<br/><small>app_reason.py</small>")
+    end
+    subgraph build_graph_run_triage_py_621e759c["run_triage.py"]
+        run_triage_main_1e02c30c("main()<br/><small>run_triage.py</small>")
+        run_triage_install_stubs_880ba2d0("_install_stubs()<br/><small>run_triage.py</small>")
+    end
+    archive_app_old_fresh_app_30751395("fresh_app()<br/><small>archive/app_old.py</small>")
+    archive_classifier_old_classify_ccdc26d9("classify()<br/><small>archive/classifier_old.py</small>")
+    classifier_classify_46abad99("classify()<br/><small>classifier.py</small>")
+    triage_graph_build_graph_78d2eb37("build_graph()<br/><small>triage_graph.py</small>")
+    retrieve_policy_policyhit_321ca169 -->|method| retrieve_policy_policyhit_as_dict_f4ce3b16
+    retrieve_policy_policyindex_379a836d -->|method| retrieve_policy_policyindex_load_e5f5c8dd
+    retrieve_policy_policyindex_379a836d -->|method| retrieve_policy_policyindex_stale_against_head_4bd1e669
+    retrieve_policy_policyindex_379a836d -->|method| retrieve_policy_policyindex_lookup_9fe56eef
+    retrieve_policy_policyindex_379a836d -->|method| retrieve_policy_policyindex_flags_611f6d8f
+    retrieve_policy_policyindex_379a836d -->|method| retrieve_policy_policyindex_init_0cb552f2
+    app_fresh_app_e654fe78 -->|calls| run_triage_install_stubs_880ba2d0
+    app_fresh_app_e654fe78 -->|calls| triage_graph_build_graph_78d2eb37
+    app_reason_fresh_app_b5d63674 -->|calls| run_triage_install_stubs_880ba2d0
+    app_reason_fresh_app_b5d63674 -->|calls| triage_graph_build_graph_78d2eb37
+    archive_app_old_fresh_app_30751395 -->|calls| run_triage_install_stubs_880ba2d0
+    archive_app_old_fresh_app_30751395 -->|calls| triage_graph_build_graph_78d2eb37
+    run_triage_main_1e02c30c -->|calls| run_triage_install_stubs_880ba2d0
+    run_triage_main_1e02c30c -->|calls| triage_graph_build_graph_78d2eb37
+    retrieve_policy_policyindex_flags_611f6d8f -->|calls| retrieve_policy_policyindex_stale_against_head_4bd1e669
+    retrieve_policy_policyindex_init_0cb552f2 -->|calls| retrieve_policy_policyindex_load_e5f5c8dd
+    retrieve_policy_policyindex_lookup_9fe56eef -->|calls| retrieve_policy_policyhit_321ca169
+    %% Omitted for readability: 209 nodes, 0 edges
+    class retrieve_policy_policyindex_379a836d klass;
+    class retrieve_policy_policyhit_321ca169 klass;
+    class retrieve_policy_policyhit_as_dict_f4ce3b16 function;
+    class retrieve_policy_policyindex_load_e5f5c8dd function;
+    class retrieve_policy_policyindex_stale_against_head_4bd1e669 function;
+    class retrieve_policy_policyindex_lookup_9fe56eef function;
+    class retrieve_policy_policyindex_flags_611f6d8f function;
+    class retrieve_policy_policyindex_init_0cb552f2 function;
+    class app_7d104347 module;
+    class app_fresh_app_e654fe78 function;
+    class app_reason_5f6630aa module;
+    class app_reason_fresh_app_b5d63674 function;
+    class run_triage_main_1e02c30c function;
+    class run_triage_install_stubs_880ba2d0 function;
+    class archive_app_old_fresh_app_30751395 function;
+    class archive_classifier_old_classify_ccdc26d9 function;
+    class classifier_classify_46abad99 function;
+    class triage_graph_build_graph_78d2eb37 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>gold_excluded</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>gold_excluded node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>TK00198</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00198 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>TK00526</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00526 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>TK00751</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00751 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>TK00798</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00798 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>TK00816</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00816 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>TK00836</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00836 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>TK00848</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00848 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>TK00896</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK00896 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>TK01114</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK01114 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>TK01687</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK01687 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>TK02105</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02105 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>TK02434</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02434 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>TK02534</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02534 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>TK02603</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02603 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>TK02625</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02625 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>TK02632</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02632 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>TK02762</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02762 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>TK02928</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02928 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>TK02976</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02976 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>TK02987</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK02987 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>TK03171</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03171 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>TK03285</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03285 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>TK03403</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03403 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>TK03463</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03463 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>TK03544</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03544 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>TK03575</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03575 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>TK03584</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03584 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>TK03890</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK03890 node in finetune/data/manifest.json.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>TK04285</code><br><small style="color:var(--muted)">finetune/data/manifest.json</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TK04285 node in finetune/data/manifest.json.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>finetune/data/manifest.json</code></td><td>110 nodes</td></tr>
+<tr><td><code>triage_graph.py</code></td><td>30 nodes</td></tr>
+<tr><td><code>retrieve_policy.py</code></td><td>19 nodes</td></tr>
+<tr><td><code>build_corpus.py</code></td><td>9 nodes</td></tr>
+<tr><td><code>classifier.py</code></td><td>9 nodes</td></tr>
+<tr><td><code>run_triage.py</code></td><td>8 nodes</td></tr>
+<tr><td><code>archive/classifier_old.py</code></td><td>7 nodes</td></tr>
+<tr><td><code>archive/grounding_old.py</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: extends x100, contains x56, explains x43, calls x29. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. Tests & Fixtures ====== -->
+<h2 id="tests-fixtures">4. Tests &amp; Fixtures</h2>
+<p>Tests &amp; Fixtures groups implementation around sweeppy, finetune, data, temperature, mostly in finetune/data/temperature_sweep.py, finetune/data/run_sweep.py, finetune/data/test_temperature_sweep.py. This section covers 47 nodes and 86 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Tests &amp; Fixtures (47 nodes, 86 edges)
+    subgraph tests_fixtures_finetune_data_temperature_sweep_p_fc05a65f["finetune/data/temperature_sweep.py"]
+        finetune_data_temperature_sweep_sweeppoint_91da4880("SweepPoint<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_run_sweep_b61b1e0f("run_sweep()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_exact_c02d708e("exact_mean()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_exact_340671fc("exact_sd()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_exact_f3dfe2ca("exact_worst()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_under_27613d99("under_worst()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_under_089d88d4("under_mean()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_passe_871401d2("passes()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_sweeppoint_failu_11a524e4("failures()<br/><small>finetune/data/temperature_sweep.py</small>")
+        finetune_data_temperature_sweep_goldenitem_047fc75d("GoldenItem<br/><small>finetune/data/temperature_sweep.py</small>")
+    end
+    subgraph tests_fixtures_finetune_data_run_sweep_py_6cdf41bb["finetune/data/run_sweep.py"]
+        finetune_data_run_sweep_main_725f805b("main()<br/><small>finetune/data/run_sweep.py</small>")
+        finetune_data_run_sweep_5c50f0b0("run_sweep.py")
+        finetune_data_run_sweep_classify_f2942330("classify()<br/><small>finetune/data/run_sweep.py</small>")
+        finetune_data_run_sweep_extract_label_f9378b8b("extract_label()<br/><small>finetune/data/run_sweep.py</small>")
+        finetune_data_run_sweep_load_golden_set_ac787fff("load_golden_set()<br/><small>finetune/data/run_sweep.py</small>")
+    end
+    subgraph tests_fixtures_finetune_data_test_temperature_sw_0b8abdfa["finetune/data/test_temperature_sweep.py"]
+        finetune_data_test_temperature_sweep_5bc2d6b9("test_temperature_sweep.py")
+        finetune_data_test_temperature_sweep_always_unde_c2f87c75("always_under()<br/><small>finetune/data/test_temperature_sweep.py</small>")
+    end
+    finetune_data_run_sweep_py_path_d2acf68a("Path")
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_exact_c02d708e
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_exact_340671fc
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_exact_f3dfe2ca
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_under_27613d99
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_under_089d88d4
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_passe_871401d2
+    finetune_data_temperature_sweep_sweeppoint_91da4880 -->|method| finetune_data_temperature_sweep_sweeppoint_failu_11a524e4
+    finetune_data_run_sweep_classify_f2942330 -->|calls| finetune_data_run_sweep_extract_label_f9378b8b
+    finetune_data_run_sweep_load_golden_set_ac787fff -->|calls| finetune_data_temperature_sweep_goldenitem_047fc75d
+    finetune_data_run_sweep_main_725f805b -->|calls| finetune_data_run_sweep_py_path_d2acf68a
+    finetune_data_run_sweep_main_725f805b -->|calls| finetune_data_run_sweep_load_golden_set_ac787fff
+    finetune_data_run_sweep_main_725f805b -->|calls| finetune_data_run_sweep_classify_f2942330
+    finetune_data_run_sweep_main_725f805b -->|calls| finetune_data_temperature_sweep_run_sweep_b61b1e0f
+    finetune_data_temperature_sweep_run_sweep_b61b1e0f -->|calls| finetune_data_temperature_sweep_sweeppoint_91da4880
+    finetune_data_run_sweep_5c50f0b0 -->|imports| finetune_data_temperature_sweep_goldenitem_047fc75d
+    finetune_data_run_sweep_5c50f0b0 -->|imports| finetune_data_temperature_sweep_run_sweep_b61b1e0f
+    finetune_data_test_temperature_sweep_5bc2d6b9 -->|imports| finetune_data_temperature_sweep_goldenitem_047fc75d
+    finetune_data_test_temperature_sweep_5bc2d6b9 -->|imports| finetune_data_temperature_sweep_run_sweep_b61b1e0f
+    finetune_data_test_temperature_sweep_5bc2d6b9 -->|imports| finetune_data_temperature_sweep_sweeppoint_91da4880
+    finetune_data_temperature_sweep_run_sweep_b61b1e0f -->|calls| finetune_data_run_sweep_classify_f2942330
+    %% Omitted for readability: 29 nodes, 0 edges
+    class finetune_data_temperature_sweep_sweeppoint_91da4880 klass;
+    class finetune_data_temperature_sweep_run_sweep_b61b1e0f function;
+    class finetune_data_temperature_sweep_sweeppoint_exact_c02d708e function;
+    class finetune_data_temperature_sweep_sweeppoint_exact_340671fc function;
+    class finetune_data_temperature_sweep_sweeppoint_exact_f3dfe2ca function;
+    class finetune_data_temperature_sweep_sweeppoint_under_27613d99 function;
+    class finetune_data_temperature_sweep_sweeppoint_under_089d88d4 function;
+    class finetune_data_temperature_sweep_sweeppoint_passe_871401d2 async;
+    class finetune_data_temperature_sweep_sweeppoint_failu_11a524e4 function;
+    class finetune_data_temperature_sweep_goldenitem_047fc75d klass;
+    class finetune_data_run_sweep_main_725f805b function;
+    class finetune_data_run_sweep_5c50f0b0 module;
+    class finetune_data_run_sweep_classify_f2942330 function;
+    class finetune_data_run_sweep_extract_label_f9378b8b function;
+    class finetune_data_run_sweep_load_golden_set_ac787fff function;
+    class finetune_data_test_temperature_sweep_5bc2d6b9 test;
+    class finetune_data_test_temperature_sweep_always_unde_c2f87c75 test;
+    class finetune_data_run_sweep_py_path_d2acf68a klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>GoldenItem</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>load_golden_set()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>run_sweep.py</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>GoldenItem node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Provenance</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Provenance node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>RunMetrics</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>score_run()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>RunMetrics node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>SweepConfig</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>run_sweep.py</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td><code>exact_mean()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>exact_sd()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>exact_worst()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br>+4 more</td>
+  <td>SweepPoint node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><code>extract_label()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td>classify() node in finetune/data/run_sweep.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>extract_label()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>extract_label() node in finetune/data/run_sweep.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>load_golden_set()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td><code>GoldenItem</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>load_golden_set() node in finetune/data/run_sweep.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>dump_raw()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>load_golden_set()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br>+4 more</td>
+  <td>main() node in finetune/data/run_sweep.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>dump_raw()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>run_sweep.py</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>dump_raw() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>_git_commit()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Turns a local path or remote repository into analysis context.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>_hash_golden_set()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>modal_agreement()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>modal_agreement() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>rank()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>always_under()</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small><br><code>score_run()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>rank() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>run_sweep.py</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td><code>_git_commit()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>_hash_golden_set()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>classify()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br>+4 more</td>
+  <td>run_sweep() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>score_run()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td><code>rank()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>RunMetrics</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>score_run() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>.exact_mean()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.exact_mean() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>.exact_sd()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.exact_sd() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>.exact_worst()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.exact_worst() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>.failures()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.failures() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>.passes()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-async">Async</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.passes() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>.under_mean()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.under_mean() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>.under_worst()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>SweepPoint</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.under_worst() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>write_report()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>run_sweep.py</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small><br><code>test_temperature_sweep.py</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>write_report() node in finetune/data/temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>always_under()</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>rank()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small></td>
+  <td>always_under() node in finetune/data/test_temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>check()</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>check() node in finetune/data/test_temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>perfect()</code><br><small style="color:var(--muted)">finetune/data/test_temperature_sweep.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>perfect() node in finetune/data/test_temperature_sweep.py.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>ClassifyFn</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>ClassifyFn node in project.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>run_sweep.py</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>dump_raw()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>GoldenItem</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br><code>run_sweep()</code><br><small style="color:var(--muted)">finetune/data/temperature_sweep.py</small><br>+3 more</td>
+  <td>Module file in finetune/data/run_sweep.py.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Path</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">finetune/data/run_sweep.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Path node in project.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>finetune/data/temperature_sweep.py</code></td><td>26 nodes</td></tr>
+<tr><td><code>finetune/data/run_sweep.py</code></td><td>8 nodes</td></tr>
+<tr><td><code>finetune/data/test_temperature_sweep.py</code></td><td>5 nodes</td></tr>
+<tr><td><code>test_gates.py</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x22, calls x19, imports x15, explains x11. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. Predict Mlxpy Label ====== -->
+<h2 id="predict-mlxpy-label">5. Predict Mlxpy Label</h2>
+<p>Predict Mlxpy Label groups implementation around predict, mlxpy, label, call, mostly in predict_mlx.py. This section covers 9 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Predict Mlxpy Label (9 nodes, 12 edges)
+    subgraph predict_mlxpy_label_predict_mlx_py_053d0819["predict_mlx.py"]
+        predict_mlx_main_a5c7bd0b("main()<br/><small>predict_mlx.py</small>")
+        predict_mlx_held_out_f959cd14("held_out()<br/><small>predict_mlx.py</small>")
+        predict_mlx_load_done_202c5a47("load_done()<br/><small>predict_mlx.py</small>")
+        predict_mlx_call_model_a008c3d5("call_model()<br/><small>predict_mlx.py</small>")
+        predict_mlx_parse_label_fab60d8d("parse_label()<br/><small>predict_mlx.py</small>")
+        predict_mlx_a47d178c("predict_mlx.py")
+        predict_mlx_rationale_54_d9b11a9b("Reproduce eval_harness.baseline()'s tes...<br/><small>predict_mlx.py</small>")
+        predict_mlx_rationale_68_69fe2572("Return (label, ok). ok=False means we f...<br/><small>predict_mlx.py</small>")
+    end
+    predict_mlx_py_dataframe_3242e86c("DataFrame")
+    predict_mlx_main_a5c7bd0b -->|calls| predict_mlx_held_out_f959cd14
+    predict_mlx_main_a5c7bd0b -->|calls| predict_mlx_load_done_202c5a47
+    predict_mlx_main_a5c7bd0b -->|calls| predict_mlx_call_model_a008c3d5
+    predict_mlx_main_a5c7bd0b -->|calls| predict_mlx_parse_label_fab60d8d
+    class predict_mlx_main_a5c7bd0b function;
+    class predict_mlx_held_out_f959cd14 function;
+    class predict_mlx_load_done_202c5a47 function;
+    class predict_mlx_call_model_a008c3d5 function;
+    class predict_mlx_parse_label_fab60d8d function;
+    class predict_mlx_a47d178c module;
+    class predict_mlx_rationale_54_d9b11a9b concept;
+    class predict_mlx_rationale_68_69fe2572 concept;
+    class predict_mlx_py_dataframe_3242e86c klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>call_model()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>call_model() node in predict_mlx.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>held_out()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>held_out() node in predict_mlx.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>load_done()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>load_done() node in predict_mlx.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>call_model()</code><br><small style="color:var(--muted)">predict_mlx.py</small><br><code>held_out()</code><br><small style="color:var(--muted)">predict_mlx.py</small><br><code>load_done()</code><br><small style="color:var(--muted)">predict_mlx.py</small><br>+1 more</td>
+  <td>main() node in predict_mlx.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>parse_label()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>parse_label() node in predict_mlx.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>predict_mlx.py</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in predict_mlx.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>DataFrame</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DataFrame node in project.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Reproduce eval_harness.baseline()&#x27;s test split exactly.</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Reproduce eval_harness.baseline()&#x27;s test split exactly..</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Return (label, ok). ok=False means we fell back.</code><br><small style="color:var(--muted)">predict_mlx.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Return (label, ok). ok=False means we fell back..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>predict_mlx.py</code></td><td>8 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x5, calls x4, explains x2, references x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. Classifier Mlxpy Classify ====== -->
+<h2 id="classifier-mlxpy-classify">6. Classifier Mlxpy Classify</h2>
+<p>Classifier Mlxpy Classify groups implementation around classifier, mlxpy, classify, parse, mostly in classifier_mlx.py. This section covers 9 nodes and 10 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Classifier Mlxpy Classify (9 nodes, 10 edges)
+    classifier_mlx_classify_2d5c2158("classify()<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_rubric_a2c1b55e("_rubric()<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_parse_41d2fa9b("_parse()<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_5b746a65("classifier_mlx.py")
+    classifier_mlx_health_2210402d("health()<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_rationale_110_9485f2d2("Classify one ticket. Returns the same s...<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_rationale_68_e29a3e00("Extract the label. Returns parse_error=...<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_rationale_1_c7bf335f("MLX backend — a locally served, optiona...<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_rationale_41_141e2519("rubric.md is the prompt's source of tru...<br/><small>classifier_mlx.py</small>")
+    classifier_mlx_classify_2d5c2158 -->|calls| classifier_mlx_rubric_a2c1b55e
+    classifier_mlx_classify_2d5c2158 -->|calls| classifier_mlx_parse_41d2fa9b
+    class classifier_mlx_classify_2d5c2158 function;
+    class classifier_mlx_rubric_a2c1b55e function;
+    class classifier_mlx_parse_41d2fa9b function;
+    class classifier_mlx_5b746a65 module;
+    class classifier_mlx_health_2210402d function;
+    class classifier_mlx_rationale_110_9485f2d2 concept;
+    class classifier_mlx_rationale_68_e29a3e00 concept;
+    class classifier_mlx_rationale_1_c7bf335f concept;
+    class classifier_mlx_rationale_41_141e2519 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>_parse()</code><br><small style="color:var(--muted)">classifier_mlx.py</small><br><code>_rubric()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td>classify() node in classifier_mlx.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>health()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>health() node in classifier_mlx.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>_parse()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_parse() node in classifier_mlx.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>_rubric()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>classify()</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_rubric() node in classifier_mlx.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>classifier_mlx.py</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>app.py</code><br><small style="color:var(--muted)">app.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Module file in classifier_mlx.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>MLX backend — a locally served, optionally LoRA-adapted model. Start the server…</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for MLX backend — a locally served, optionally LoRA-adapted model. Start the server….</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Classify one ticket. Returns the same shape as the other backends.</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Classify one ticket. Returns the same shape as the other backends..</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>rubric.md is the prompt&#x27;s source of truth. Fall back if absent.</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for rubric.md is the prompt&#x27;s source of truth. Fall back if absent..</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Extract the label. Returns parse_error=True if nothing usable came back.</code><br><small style="color:var(--muted)">classifier_mlx.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Extract the label. Returns parse_error=True if nothing usable came back..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>classifier_mlx.py</code></td><td>9 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4, explains x4, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. Eval Harnesspy Baseline ====== -->
+<h2 id="eval-harnesspy-baseline">7. Eval Harnesspy Baseline</h2>
+<p>Eval Harnesspy Baseline groups implementation around eval, harnesspy, baseline, report, mostly in eval_harness.py. This section covers 9 nodes and 13 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Eval Harnesspy Baseline (9 nodes, 13 edges)
+    eval_harness_main_3547d068("main()<br/><small>eval_harness.py</small>")
+    eval_harness_baseline_d754616e("baseline()<br/><small>eval_harness.py</small>")
+    eval_harness_score_83dea867("score()<br/><small>eval_harness.py</small>")
+    eval_harness_report_e032dd66("report()<br/><small>eval_harness.py</small>")
+    eval_harness_under_classification_b88f7414("under_classification()<br/><small>eval_harness.py</small>")
+    eval_harness_2010d5f1("eval_harness.py")
+    eval_harness_rationale_1_3b6c941e("Eval harness. Complete and runnable — t...<br/><small>eval_harness.py</small>")
+    eval_harness_rationale_23_adb424c1("Share of tickets scored LOWER than trut...<br/><small>eval_harness.py</small>")
+    eval_harness_rationale_66_9eb77cc5("TF-IDF + logistic regression. The bar a...<br/><small>eval_harness.py</small>")
+    eval_harness_baseline_d754616e -->|calls| eval_harness_score_83dea867
+    eval_harness_main_3547d068 -->|calls| eval_harness_score_83dea867
+    eval_harness_main_3547d068 -->|calls| eval_harness_report_e032dd66
+    eval_harness_main_3547d068 -->|calls| eval_harness_baseline_d754616e
+    eval_harness_score_83dea867 -->|calls| eval_harness_under_classification_b88f7414
+    class eval_harness_main_3547d068 function;
+    class eval_harness_baseline_d754616e function;
+    class eval_harness_score_83dea867 function;
+    class eval_harness_report_e032dd66 function;
+    class eval_harness_under_classification_b88f7414 function;
+    class eval_harness_2010d5f1 module;
+    class eval_harness_rationale_1_3b6c941e concept;
+    class eval_harness_rationale_23_adb424c1 concept;
+    class eval_harness_rationale_66_9eb77cc5 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>baseline()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><code>score()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td>baseline() node in eval_harness.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>baseline()</code><br><small style="color:var(--muted)">eval_harness.py</small><br><code>report()</code><br><small style="color:var(--muted)">eval_harness.py</small><br><code>score()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td>main() node in eval_harness.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>report()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>report() node in eval_harness.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>score()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>baseline()</code><br><small style="color:var(--muted)">eval_harness.py</small><br><code>main()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><code>under_classification()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td>score() node in eval_harness.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>under_classification()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>score()</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>under_classification() node in eval_harness.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>eval_harness.py</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in eval_harness.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Eval harness. Complete and runnable — this is infrastructure, not the lesson.…</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Eval harness. Complete and runnable — this is infrastructure, not the lesson.….</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Share of tickets scored LOWER than truth. The asymmetric error: a high called…</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Share of tickets scored LOWER than truth. The asymmetric error: a high called….</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>TF-IDF + logistic regression. The bar an LLM must clear to be worth its cost.</code><br><small style="color:var(--muted)">eval_harness.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for TF-IDF + logistic regression. The bar an LLM must clear to be worth its cost..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>eval_harness.py</code></td><td>9 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x5, contains x5, explains x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. Calibrate Groundingpy Fit ====== -->
+<h2 id="calibrate-groundingpy-fit">8. Calibrate Groundingpy Fit</h2>
+<p>Calibrate Groundingpy Fit groups implementation around calibrate, groundingpy, fit, label, mostly in calibrate_grounding.py. This section covers 5 nodes and 5 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Calibrate Groundingpy Fit (5 nodes, 5 edges)
+    calibrate_grounding_label_351d5614("label()<br/><small>calibrate_grounding.py</small>")
+    calibrate_grounding_load_calls_5eb9e4cc("load_calls()<br/><small>calibrate_grounding.py</small>")
+    calibrate_grounding_12c232f3("calibrate_grounding.py")
+    calibrate_grounding_fit_cd14ae6e("fit()<br/><small>calibrate_grounding.py</small>")
+    calibrate_grounding_rationale_1_7c7a9414("Derive the grounded/weak cutoffs from Y...<br/><small>calibrate_grounding.py</small>")
+    calibrate_grounding_label_351d5614 -->|calls| calibrate_grounding_load_calls_5eb9e4cc
+    class calibrate_grounding_label_351d5614 function;
+    class calibrate_grounding_load_calls_5eb9e4cc function;
+    class calibrate_grounding_12c232f3 module;
+    class calibrate_grounding_fit_cd14ae6e function;
+    class calibrate_grounding_rationale_1_7c7a9414 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>fit()</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fit() node in calibrate_grounding.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>label()</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>load_calls()</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td>label() node in calibrate_grounding.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>load_calls()</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>label()</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>load_calls() node in calibrate_grounding.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>calibrate_grounding.py</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in calibrate_grounding.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Derive the grounded/weak cutoffs from YOUR judgements. Do not inherit them.…</code><br><small style="color:var(--muted)">calibrate_grounding.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Derive the grounded/weak cutoffs from YOUR judgements. Do not inherit them.….</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>calibrate_grounding.py</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x3, calls x1, explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 9. Prepare Datapy Finetune ====== -->
+<h2 id="prepare-datapy-finetune">9. Prepare Datapy Finetune</h2>
+<p>Prepare Datapy Finetune groups implementation around prepare, datapy, finetune, record, mostly in finetune/prepare_data.py. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Prepare Datapy Finetune (3 nodes, 2 edges)
+    finetune_prepare_data_rationale_1_5c51b8c3("Build the LoRA training split. Run from...<br/><small>finetune/prepare_data.py</small>")
+    finetune_prepare_data_59863a98("prepare_data.py")
+    finetune_prepare_data_record_85167b0b("record()<br/><small>finetune/prepare_data.py</small>")
+    finetune_prepare_data_59863a98 -->|contains| finetune_prepare_data_record_85167b0b
+    finetune_prepare_data_rationale_1_5c51b8c3 -->|explains| finetune_prepare_data_59863a98
+    class finetune_prepare_data_rationale_1_5c51b8c3 concept;
+    class finetune_prepare_data_59863a98 module;
+    class finetune_prepare_data_record_85167b0b function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>record()</code><br><small style="color:var(--muted)">finetune/prepare_data.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>record() node in finetune/prepare_data.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>prepare_data.py</code><br><small style="color:var(--muted)">finetune/prepare_data.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in finetune/prepare_data.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Build the LoRA training split. Run from the project root. python…</code><br><small style="color:var(--muted)">finetune/prepare_data.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Build the LoRA training split. Run from the project root. python….</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>finetune/prepare_data.py</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x1, explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 10. Make Datasetspy Regenerate ====== -->
+<h2 id="make-datasetspy-regenerate">10. Make Datasetspy Regenerate</h2>
+<p>Make Datasetspy Regenerate groups implementation around make, datasetspy, regenerate, working, mostly in make_datasets.py. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Make Datasetspy Regenerate (2 nodes, 1 edges)
+    make_datasets_rationale_1_069a6b31("Regenerate the working sets from the do...<br/><small>make_datasets.py</small>")
+    make_datasets_f852baf6("make_datasets.py")
+    make_datasets_rationale_1_069a6b31 -->|explains| make_datasets_f852baf6
+    class make_datasets_rationale_1_069a6b31 concept;
+    class make_datasets_f852baf6 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>make_datasets.py</code><br><small style="color:var(--muted)">make_datasets.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in make_datasets.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Regenerate the working sets from the downloaded source CSV. See DATA.md.</code><br><small style="color:var(--muted)">make_datasets.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Regenerate the working sets from the downloaded source CSV. See DATA.md..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>make_datasets.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 11. Check Leakagepy ====== -->
+<h2 id="check-leakagepy">11. Check Leakagepy</h2>
+<p>Check Leakagepy groups implementation around check, leakagepy, mostly in check_leakage.py. This section covers 1 nodes and 0 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Check Leakagepy (1 nodes, 0 edges)
+    check_leakage_b79fd322("check_leakage.py")
+    class check_leakage_b79fd322 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>check_leakage.py</code><br><small style="color:var(--muted)">check_leakage.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Module file in check_leakage.py.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>check_leakage.py</code></td><td>1 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: No high-confidence call edges detected. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>342</td></tr>
+      <tr><td>Edges</td><td>476</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>18</td></tr>
+      <tr><td>Documented Sections</td><td>10</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>459</td></tr>
+      <tr><td>INFERRED</td><td>17</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>governed-triage-graph — Architecture Documentation</p>
+  <p>Generated: 2026-09-05 08:54 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>

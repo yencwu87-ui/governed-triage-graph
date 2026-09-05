@@ -29,3 +29,10 @@ soc_alerts.csv
 corpus.csv
 smoke.csv
 runs/
+
+# Stub and scratch predictions
+preds.csv
+
+# Graphify caches — the graph itself is committed, the cache is not
+graphify-out/cache/
+graphify-out/cost.json
