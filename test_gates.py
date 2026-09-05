@@ -134,6 +134,11 @@ print("     Override rate at or near 0%, or decisions in under ~3 seconds,")
 print("     means the gate is theatre. That is a finding about the PROCESS,")
 print("     not the code — and no test here can detect it for you.")
 
+# ------------------------------------------------------- policy channel
+# Fixture-backed; needs no model, no gold set and no ./policy corpus.
+import test_policy_channel
+test_policy_channel.run(check)
+
 # -------------------------------------------------------------------- done
 n_pass = sum(1 for _, ok in results if ok)
 print("\n  " + "=" * 58)
@@ -141,6 +146,10 @@ print(f"  {n_pass}/{len(results)} passed\n")
 if n_pass == len(results):
     print("  Verdict: Gate B is human-IN-the-loop — blocking, with no timeout")
     print("  bypass. Gate A is machine-only and involves no human at all.\n")
+    print("  Caveat, and it is not small: T21 PASSES BY DEMONSTRATING A HOLE.")
+    print("  The policy channel's provenance gate governs traversal only. A")
+    print("  band-crossing clause can still seed directly on one shared word.")
+    print("  It is flagged, not prevented. Do not read 22/22 as closed.\n")
 else:
     print("  Verdict: WITHHELD. A failing control test is a finding — log it\n"
           "  before changing anything.\n")
