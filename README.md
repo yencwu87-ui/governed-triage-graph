@@ -203,3 +203,5 @@ Things this build surfaced, kept here because negative results are the point.
 | `gold/labels.csv` | hand-labelled reference set |
 | `ledger.jsonl` | append-only record of every scored run |
 | `archive/` | superseded module versions, retained for history |
+
+![graphify path query across the triage graph](docs/demo-path.gif)
