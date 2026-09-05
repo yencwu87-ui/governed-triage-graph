@@ -205,3 +205,5 @@ Things this build surfaced, kept here because negative results are the point.
 | `archive/` | superseded module versions, retained for history |
 
 ![graphify path query across the triage graph](docs/demo-path.gif)
+
+![four-hop path through the governed triage graph](docs/demo-path.svg)
